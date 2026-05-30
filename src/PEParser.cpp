@@ -46,7 +46,7 @@ bool PEParser::Load() {
     }
     std::wcout << L"file size fetched sucessfully: " << m_fileSize.QuadPart << L" bytes.\n";
 
-    // step 2: create a section object for the opened PE file
+    // step 3: create a section object for the opened PE file
     std::wcout << L"\ncreating the section object for the opened PE file...\n";
     m_sectionHandle = CreateFileMappingW(m_peFileHandle, NULL, PAGE_READONLY, 0, 0, NULL);
     if (m_sectionHandle == NULL) {
@@ -56,7 +56,7 @@ bool PEParser::Load() {
     }
     std::wcout << L"section object created successfully.\n";
     
-    // step 3: map the section to the memory of the current process
+    // step 4: map the section to the memory of the current process
     std::wcout << L"\nmapping the section to the current process's virtual address space...\n";
     m_baseAddress = MapViewOfFile(m_sectionHandle, FILE_MAP_READ, 0, 0, 0);
     if (m_baseAddress == NULL) {
@@ -81,12 +81,47 @@ bool PEParser::ParseDOSHeader() {
         std::wcout << L"magic bytes are invalid, exiting...\n";
         return false;
     }
-    std::wcout << L"magic bytes are valid.";
+    std::wcout << L"magic bytes are valid.\n";
 
     return true;
 }
 
-bool PEParser::ParseDOSStub() {
+bool PEParser::ParseNTHeaders() {
+    // step 1: validate the value of m_dosHeader->e_lfanew
+    std::wcout << L"\nvalidating DOS header's e_lfanew...\n";
+    // std::wcout << L"e_lfanew = " << m_dosHeader->e_lfanew << std::endl;
+    // check if it is not negative or inside DOS header
+    if (m_dosHeader->e_lfanew < sizeof(IMAGE_DOS_HEADER)) {
+        std::wcout << L"invalid e_lfanew value, should not be smaller than size of DOS header.\n";
+        return false;
+    }
+    std::wcout << L"e_lfanew DOS header check passed.\n";
+
+    // check if it is inside the scope of the file and there is enough space for the NT headers
+    // calculate the size of signature (DWORD) and image file header
+    size_t signatureAndImageFileHeaderSize = sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER);
+    if((static_cast<size_t>(m_dosHeader->e_lfanew) + signatureAndImageFileHeaderSize) > m_fileSize.QuadPart) {
+        std::wcout << L"invalid e_lfanew, no space left for NT headers.\n";
+        return false;
+    }
+    std::wcout << L"e_lfanew NT headers space check passed.\n";
+
+    // step 2: Fetch IMAGE_FILE_HEADER and check the value of SizeOfOptional header
+    // validate that as well and read it if everything seems okay.
+    std::wcout << L"\nparsing NT headers...\n";
+    IMAGE_FILE_HEADER* imgFileHeader = reinterpret_cast <IMAGE_FILE_HEADER*>(
+        reinterpret_cast <char*>(m_baseAddress) + m_dosHeader->e_lfanew + sizeof(DWORD)
+    );
+    std::wcout << L"size of optional header is " << imgFileHeader->SizeOfOptionalHeader << L" bytes.\n";
+    if((static_cast<size_t>(m_dosHeader->e_lfanew) + signatureAndImageFileHeaderSize + imgFileHeader->SizeOfOptionalHeader) > m_fileSize.QuadPart) {
+        std::wcout << L"invalid SizeOfOptionalHeader, no space left for optional header.\n";
+        return false;
+    }
+    IMAGE_NT_HEADERS* m_ntHeaders = reinterpret_cast <IMAGE_NT_HEADERS*>(
+        reinterpret_cast <char*>(m_baseAddress) + m_dosHeader->e_lfanew
+    );
+    std::wcout << L"NT headers parsed successfully\n";
+
     // step 1: cast the address of DOS stub as an IMAGE_DOS_STUB* pointer (m_baseAddress + sizeof())
     return true;
 }

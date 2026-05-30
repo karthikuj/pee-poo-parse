@@ -10,6 +10,7 @@ private:
     LPVOID m_baseAddress; // the base address of the memory mapped PE file.
     IMAGE_DOS_HEADER* m_dosHeader; // the DOS header of the PE file.
     // IMAGE_DOS_STUB* m_dosStub; // the DOS stub of the PE file.
+    IMAGE_NT_HEADERS m_ntHeaders; // the NT headers of the PE file.
 
 public:
     PEParser(const wchar_t* filePath);
@@ -17,5 +18,6 @@ public:
 
     bool Load(); // Load() opens and loads the PE file to memory.
     bool ParseDOSHeader(); // ParseDOSHeader() parses and validates the DOS header.
-    bool ParseDOSStub(); // ParseDOSStub() parses and validates the DOS stub.
+    // bool ParseDOSStub(); // ParseDOSStub() parses and validates the DOS stub.
+    bool ParseNTHeaders(); // ParseNTHeaders() parses and validates the DOS NT headers.
 };
