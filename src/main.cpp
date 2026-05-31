@@ -12,6 +12,7 @@ int wmain(int argc, wchar_t* argv[]) {
     if(!pep.Load()) return 1;
     if(!pep.ParseDOSHeader()) return 1;
     if (!pep.ParseNTHeaders()) return 1;
+    if(!pep.ParseSectionHeaders()) return 1;
 
     return 0;
 }

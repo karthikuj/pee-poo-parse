@@ -99,7 +99,7 @@ bool PEParser::ParseNTHeaders() {
 
     // check if it is inside the scope of the file and there is enough space for the NT headers
     // calculate the size of signature (DWORD) and image file header
-    size_t signatureAndImageFileHeaderSize = sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER);
+    size_t signatureAndImageFileHeaderSize = sizeof(DWORD) + IMAGE_SIZEOF_FILE_HEADER;
     if((static_cast<size_t>(m_dosHeader->e_lfanew) + signatureAndImageFileHeaderSize) > m_fileSize.QuadPart) {
         std::wcout << L"invalid e_lfanew, no space left for NT headers.\n";
         return false;
@@ -128,8 +128,30 @@ bool PEParser::ParseNTHeaders() {
         std::wcout << L"invalid SizeOfOptionalHeader, no space left for optional header.\n";
         return false;
     }
-    IMAGE_NT_HEADERS* m_ntHeaders = reinterpret_cast <IMAGE_NT_HEADERS*>(m_ntHeadersBaseAddress);
-    std::wcout << L"NT headers parsed successfully\n";
+    m_ntHeaders = reinterpret_cast <IMAGE_NT_HEADERS*>(m_ntHeadersBaseAddress);
+    std::wcout << L"NT headers parsed successfully.\n";
 
+    return true;
+}
+
+bool PEParser::ParseSectionHeaders() {
+    // step 1: validate the section headers size so that we don't read our of bounds.
+    size_t totalSizeNeeded = m_ntHeaders->FileHeader.NumberOfSections * IMAGE_SIZEOF_SECTION_HEADER;
+    std::wcout << L"\nvalidating number of sections...\n";
+    if (static_cast<size_t>(m_dosHeader->e_lfanew) + sizeof(DWORD) + IMAGE_SIZEOF_FILE_HEADER + 
+        m_ntHeaders->FileHeader.SizeOfOptionalHeader + totalSizeNeeded > m_fileSize.QuadPart) {
+            std::wcout << L"not enough space to fit all sections.\n";
+            return false;
+    }
+    std::wcout << L"number of sections validated.\n";
+
+    // step 2: parse the section headers
+    std::wcout << L"\nparsing the section headers...\n";
+    m_sectionHeaders = &PESectionHeaders(m_ntHeaders->FileHeader.NumberOfSections);
+    if (!m_sectionHeaders->ParseSectionHeaders(m_ntHeaders)) {
+        return false;
+    }
+    std::wcout << L"section headers parsed sucessfully.\n";
+    
     return true;
 }
