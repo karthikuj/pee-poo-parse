@@ -162,7 +162,7 @@ bool PEParser::ParseDataDirectories() {
             // step 1: check in which section it lies.
             // step 2: use the virtual address of the data directory and section to calculate the depth and find the offset.
             // step 3: validate if the data entry is within the bounds of the file, to prevent OOB read.
-            // step 4: cast it into the appropriate structure.
+            // step 4: cast it into the appropriate structure using a switch block.
         }
     }
     return true;
