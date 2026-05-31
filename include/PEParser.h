@@ -24,4 +24,5 @@ public:
     // bool ParseDOSStub(); // ParseDOSStub() validates and parses the DOS stub.
     bool ParseNTHeaders(); // ParseNTHeaders() validates and parses the DOS NT headers.
     bool ParseSectionHeaders(); // ParseSectionHeaders() validates and parses the section headers.
+    bool ParseDataDirectories(); // ParseDataDirectories() parses the data directories inside the PE file.
 };

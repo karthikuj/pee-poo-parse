@@ -155,3 +155,15 @@ bool PEParser::ParseSectionHeaders() {
     
     return true;
 }
+
+bool PEParser::ParseDataDirectories() {
+    for(size_t i = 0; i < IMAGE_NUMBEROF_DIRECTORY_ENTRIES; i++) {
+        if (m_ntHeaders->OptionalHeader.DataDirectory[i].VirtualAddress != 0) {
+            // step 1: check in which section it lies.
+            // step 2: use the virtual address of the data directory and section to calculate the depth and find the offset.
+            // step 3: validate if the data entry is within the bounds of the file, to prevent OOB read.
+            // step 4: cast it into the appropriate structure.
+        }
+    }
+    return true;
+}

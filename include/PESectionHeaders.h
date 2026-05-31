@@ -8,5 +8,7 @@ private:
 public:
     PESectionHeaders(WORD numberOfSections); // PESectionHeaders contructor
 
-    bool ParseSectionHeaders(IMAGE_NT_HEADERS* ntHeaders);
+    bool ParseSectionHeaders(IMAGE_NT_HEADERS* ntHeaders);// ParseSectionHeaders validates and parses the section headers of the PE file.
+    std::vector<IMAGE_SECTION_HEADER*> GetSectionHeaders(); // GetSectionHeaders() returns the stored section headers.
+    DWORD RVAToOffset(DWORD rva); // RVAToOffset returns the raw file offset for the RVA.
 };
