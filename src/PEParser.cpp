@@ -106,22 +106,30 @@ bool PEParser::ParseNTHeaders() {
     }
     std::wcout << L"e_lfanew NT headers space check passed.\n";
 
+    // validation for signature
+    std::wcout << L"\nvalidating NT headers signature...\n";
+    m_ntHeadersBaseAddress = reinterpret_cast<BYTE*>(m_baseAddress) + m_dosHeader->e_lfanew;
+    DWORD* signature = reinterpret_cast<DWORD*>(m_ntHeadersBaseAddress);
+    if (*signature != IMAGE_NT_SIGNATURE) {
+        std::wcout << L"invalid NT header signature.\n";
+        return false;
+    }
+    std::wcout << L"signature validated successfully.\n";
+    
+
     // step 2: Fetch IMAGE_FILE_HEADER and check the value of SizeOfOptional header
     // validate that as well and read it if everything seems okay.
     std::wcout << L"\nparsing NT headers...\n";
     IMAGE_FILE_HEADER* imgFileHeader = reinterpret_cast <IMAGE_FILE_HEADER*>(
-        reinterpret_cast <char*>(m_baseAddress) + m_dosHeader->e_lfanew + sizeof(DWORD)
+        reinterpret_cast<BYTE*>(m_ntHeadersBaseAddress) + sizeof(DWORD)
     );
     std::wcout << L"size of optional header is " << imgFileHeader->SizeOfOptionalHeader << L" bytes.\n";
     if((static_cast<size_t>(m_dosHeader->e_lfanew) + signatureAndImageFileHeaderSize + imgFileHeader->SizeOfOptionalHeader) > m_fileSize.QuadPart) {
         std::wcout << L"invalid SizeOfOptionalHeader, no space left for optional header.\n";
         return false;
     }
-    IMAGE_NT_HEADERS* m_ntHeaders = reinterpret_cast <IMAGE_NT_HEADERS*>(
-        reinterpret_cast <char*>(m_baseAddress) + m_dosHeader->e_lfanew
-    );
+    IMAGE_NT_HEADERS* m_ntHeaders = reinterpret_cast <IMAGE_NT_HEADERS*>(m_ntHeadersBaseAddress);
     std::wcout << L"NT headers parsed successfully\n";
 
-    // step 1: cast the address of DOS stub as an IMAGE_DOS_STUB* pointer (m_baseAddress + sizeof())
     return true;
 }
