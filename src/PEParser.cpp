@@ -7,6 +7,7 @@ PEParser::PEParser(const wchar_t* filePath) {
     // step 1: check if the file path is empty
     if (filePath[0] == L'\0') {
         std::wcout << L"ayo! the file path is empty\n";
+        return;
     }
 
     // step 2: store it in our private member variable
@@ -147,7 +148,7 @@ bool PEParser::ParseSectionHeaders() {
 
     // step 2: parse the section headers
     std::wcout << L"\nparsing the section headers...\n";
-    m_sectionHeaders = &PESectionHeaders(m_ntHeaders->FileHeader.NumberOfSections);
+    m_sectionHeaders = new PESectionHeaders(m_ntHeaders->FileHeader.NumberOfSections);
     if (!m_sectionHeaders->ParseSectionHeaders(m_ntHeaders)) {
         return false;
     }
@@ -157,13 +158,96 @@ bool PEParser::ParseSectionHeaders() {
 }
 
 bool PEParser::ParseDataDirectories() {
+    DWORD vAddr;
+    std::wcout << "\nparsing data directories...\n";
     for(size_t i = 0; i < IMAGE_NUMBEROF_DIRECTORY_ENTRIES; i++) {
-        if (m_ntHeaders->OptionalHeader.DataDirectory[i].VirtualAddress != 0) {
-            // step 1: check in which section it lies.
-            // step 2: use the virtual address of the data directory and section to calculate the depth and find the offset.
-            // step 3: validate if the data entry is within the bounds of the file, to prevent OOB read.
-            // step 4: cast it into the appropriate structure using a switch block.
+        // std::wcout << L"data directory index: " << i << std::endl;
+        vAddr = m_ntHeaders->OptionalHeader.DataDirectory[i].VirtualAddress;
+        if (vAddr == 0) continue;
+
+        // std::wcout << L"data directory is not empty, virt addr: " << std::hex << vAddr << std::endl;
+        // std::wcout << L"section headers length: " <<  m_sectionHeaders->GetSectionHeaders().size() << std::endl;
+        // step 1: check in which section it lies.
+        size_t j;
+        for(j = 0; j < m_sectionHeaders->GetSectionHeaders().size(); j++) {
+            // std::wcout << L"section header num: " << j << std::endl;
+            // std::wcout << L"section header virt addr: " << std::hex << m_sectionHeaders->GetSectionHeaders()[j]->VirtualAddress << std::endl;
+            // std::wcout << L"section header end virt addr: " << std::hex << m_sectionHeaders->GetSectionHeaders()[j]->VirtualAddress + m_sectionHeaders->GetSectionHeaders()[j]->Misc.VirtualSize << std::endl;
+            if (vAddr >= m_sectionHeaders->GetSectionHeaders()[j]->VirtualAddress && 
+                vAddr <= (m_sectionHeaders->GetSectionHeaders()[j]->VirtualAddress + 
+                m_sectionHeaders->GetSectionHeaders()[j]->Misc.VirtualSize)) {
+                std::wcout << L"For the data directory '" << i << L"' the section is " << reinterpret_cast<char*>(m_sectionHeaders->GetSectionHeaders()[j]->Name) << std::endl;
+                break;
+            }
+        }
+        // step 2: use the virtual address of the data directory and section to calculate the depth and find the offset.
+        DWORD dataDirRawAddr = RVAToOffset(vAddr, m_sectionHeaders->GetSectionHeaders()[j]->VirtualAddress, m_sectionHeaders->GetSectionHeaders()[j]->PointerToRawData);
+        std::wcout << L"data dir raw address: " << std::hex << dataDirRawAddr << std::endl;
+        // step 3: validate if the data entry is within the bounds of the file, to prevent OOB read.
+        // step 4: cast it into the appropriate structure using a switch block.
+        switch (i)
+        {
+        case IMAGE_DIRECTORY_ENTRY_EXPORT:
+            break;
+
+        case IMAGE_DIRECTORY_ENTRY_IMPORT: {
+            IMAGE_IMPORT_DESCRIPTOR* m_importDirectory = reinterpret_cast<IMAGE_IMPORT_DESCRIPTOR*>(
+                reinterpret_cast<BYTE*>(m_baseAddress) + dataDirRawAddr);
+            // std::wcout << "\nName: " << reinterpret_cast<char*>(
+            //     reinterpret_cast<BYTE*>(m_baseAddress) + m_importDirectory->Name) << std::endl;
+            DWORD nameOffset = RVAToOffset(m_importDirectory->Name, m_sectionHeaders->GetSectionHeaders()[j]->VirtualAddress, m_sectionHeaders->GetSectionHeaders()[j]->PointerToRawData);
+            std::wcout << "Name: " << reinterpret_cast<char*>(m_baseAddress) + nameOffset << std::endl;
+            // TODO: handle multiple import tables. loop through them and store them properly.
+            break;
+        }
+        
+        case IMAGE_DIRECTORY_ENTRY_RESOURCE:
+            break;
+
+        case IMAGE_DIRECTORY_ENTRY_EXCEPTION:
+            break;
+
+        case IMAGE_DIRECTORY_ENTRY_SECURITY:
+            break;
+
+        case IMAGE_DIRECTORY_ENTRY_BASERELOC:
+            break;
+        
+        case IMAGE_DIRECTORY_ENTRY_DEBUG:
+            break;
+        
+        case IMAGE_DIRECTORY_ENTRY_ARCHITECTURE:
+            break;
+        
+        case IMAGE_DIRECTORY_ENTRY_GLOBALPTR:
+            break;
+        
+        case IMAGE_DIRECTORY_ENTRY_TLS:
+            break;
+        
+        case IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG:
+            break;
+
+        case IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT:
+            break;
+        
+        case IMAGE_DIRECTORY_ENTRY_IAT:
+            break;
+        
+        case IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT:
+            break;
+        
+        case IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR:
+            break;
+        
+        default:
+            break;
         }
     }
     return true;
+}
+
+DWORD PEParser::RVAToOffset(DWORD rva, DWORD sectionRVA, DWORD rawAddr) {
+    DWORD depth = rva - sectionRVA;
+    return rawAddr + depth;
 }

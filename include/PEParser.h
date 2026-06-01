@@ -25,4 +25,5 @@ public:
     bool ParseNTHeaders(); // ParseNTHeaders() validates and parses the DOS NT headers.
     bool ParseSectionHeaders(); // ParseSectionHeaders() validates and parses the section headers.
     bool ParseDataDirectories(); // ParseDataDirectories() parses the data directories inside the PE file.
+    DWORD RVAToOffset(DWORD dataDirVirtAddr, DWORD sectionVirtAddr, DWORD rawAddr); // RVAToOffset returns the raw file offset for the RVA.
 };

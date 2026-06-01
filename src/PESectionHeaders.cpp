@@ -3,7 +3,7 @@
 #include <iostream>
 
 PESectionHeaders::PESectionHeaders(WORD numberOfSections) {
-    m_sectionHeaders.resize(numberOfSections);
+    m_sectionHeaders.reserve(numberOfSections);
     // m_numberOfSections = numberOfSections;
 }
 
@@ -13,7 +13,10 @@ bool PESectionHeaders::ParseSectionHeaders(IMAGE_NT_HEADERS* ntHeaders) {
         IMAGE_SECTION_HEADER* currSection = &sectionHeaderArray[i];
         m_sectionHeaders.push_back(currSection);
         std::string safeSectionName(reinterpret_cast<char*>(currSection->Name), 8);
-        std::cout << "section header parsed: " << safeSectionName  << std::endl;
     }
     return true;
+}
+
+std::vector<IMAGE_SECTION_HEADER*> PESectionHeaders::GetSectionHeaders() {
+    return m_sectionHeaders;
 }
